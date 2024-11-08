@@ -1,98 +1,218 @@
-// *******TOP MODULE***********
-`timescale 1ns / 1ps
-module intg(clk, out, data, temp);
-input clk;
-output out;
-output[3:0] temp;
-output [15:0] data;
-wire q3, q2, q1, q0;
-wire [15:0] data;
-bcd_Count bcdc(clk, q0, q1, q2, q3);
-memory mmry(q0, q1, q2, q3, data);
-mux_16 dm(data, q3, q2, q1, q0, out);
-assign temp = {q0, q1, q2, q3};
-endmodule
-// **************JK FLIPFLOP***************
-module jk_ff ( input j, input k, input clk, output q);
-reg temp, q;
-initial q = 0;
-always @ (negedge clk)
-case ({j,k})
-2'b00 : q <= q;
-2'b01 : q <= 0;
-2'b10 : q <= 1;
-2'b11 : q <= ~q;
-endcase
-endmodule
-// ****************BCD_COUNTER************
-module bcd_Count(clk, q0, q1, q2, q3);
-input clk;
-output q0, q1, q2, q3;
-jk_ff jk0(1'b1, 1'b1, clk, q0);
-jk_ff jk1(~q3, 1'b1, q0, q1);
-jk_ff jk2(1'b1, 1'b1, q1, q2);
-and ad(k, q1, q2);
-jk_ff jk3(k, 1'b1, q0, q3);
-endmodule
-// **********************MEMORY MODULE**************************
-module memory(q3, q2, q1, q0, data);
-input q3, q2, q1, q0;
-output reg [15:0] data;
-reg [15:0]mem[0:15];
+/*
+Name : Harpinder Jot Singh
+ID	 : 2017A7PS0057P
+*/
+`timescale 1ms/1ns
+module MUX_2x1(
+	output E,
+	input C,
+	input D,
+	input F
+);
 
-// JK FF- 4Marks . Should be negative
-// edge triggered. Zero marks otherwise
+	assign E = F ? D : C;
 
-// BCD counter- 6Marks .
-
-// Memory- 8 Marks .
-
-initial
-begin
-mem[0] = 16'h0001;
-mem[1] = 16'h0002;
-mem[2] = 16'h0004;
-mem[3] = 16'h0008;
-mem[4] = 16'h0010;
-mem[5] = 16'h0020;
-mem[6] = 16'h0000;
-mem[7] = 16'h0000;
-mem[8] = 16'h0000;
-mem[9] = 16'h0000;
-mem[10] = 16'h0400;
-mem[11] = 16'h0800;
-mem[12] = 16'h1000;
-mem[13] = 16'h0000;
-mem[14] = 16'h0000;
-mem[15] = 16'h0000;
-end
-always @(*)
-data = mem[{q0, q1, q2, q3}];
 endmodule
 
-//*******************************MUX**************************
-module mux_16(data, q3, q2, q1, q0, out);
-input [15:0] data;
-input q3, q2, q1, q0;
-output reg out;
-always @(*)
-begin
-out = data[{q3, q2, q1, q0}];
-end
+module MUX_8x1(
+	output O,
+	input [7:0] E,
+	input [2:0] Q
+);
+
+	assign O = Q[2] ? 
+					(Q[1] ? 
+						( (Q[0] ? (E[7]) : (E[6]) ) ) 
+					:   ( (Q[0] ? (E[5]) : (E[4]) )) ) 
+				  : (Q[1] ? 
+						( (Q[0] ? (E[3]) : (E[2]) )) 
+					:   ( (Q[0] ? (E[1]) : (E[0]) )));
+
 endmodule
-//********************************************TESTBENCH***************
-// *************************
-`timescale 1ns/1ps
-module tb_jk;
-reg clk;
-wire out;
-wire [3:0] temp;
-wire [15:0] data;
-initial clk = 1;
-always #5 clk = ~clk;
-top tp(clk, out, data, temp);
-initial begin
-$monitor($time,"clk=%b out= %b data=%b\n",clk,out,data);
-#200 $finish;
-end
+
+module MUX_ARRAY(
+	output [7:0] E,
+	input [7:0] C,
+	input [7:0] D,
+	input [7:0] F
+);
+	
+	//wire ground = 1'b0;
+	
+	genvar i;
+	
+	generate for(i = 0; i < 8; i = i+1) begin :muxarr
+		
+		MUX_2x1 mux( E[i], D[i], C[i], F[i] );
+		
+	end
+	endgenerate
+
+endmodule
+
+module COUNTER_3BIT(
+	output [2:0] Q,
+	input CLEAR,
+	input CLK
+);
+
+	reg [2:0] Q;
+	
+	initial 
+		Q = 3'b0;
+	
+	always @(posedge CLK) begin
+		Q <= Q + 1;
+	end
+	
+	always @(CLEAR)
+		if(CLEAR) 
+			Q <= 3'b0;
+	
+	
+
+endmodule
+
+
+
+module DECODER(
+	
+	output [7:0] B,
+	input EN,
+	input [2:0] A
+	
+);
+	reg [7:0] B;
+	always @(A) begin
+		if(EN) begin
+			case(A) 
+				
+				3'd0 : B = 8'b0000_0001;
+				3'd1 : B = 8'b0000_0010;
+				3'd2 : B = 8'b0000_0100;
+				3'd3 : B = 8'b0000_1000;
+				
+				3'd4 : B = 8'b0001_0000;
+				3'd5 : B = 8'b0010_0000;
+				3'd6 : B = 8'b0100_0000;
+				3'd7 : B = 8'b1000_0000;
+			
+			endcase
+		end
+	end
+
+
+endmodule
+
+
+
+
+module MEMORY(
+	
+	output [7:0] G,
+	input [2:0] A
+	
+);
+
+	reg [7:0] memory[0:7];
+	reg [7:0] G;
+	
+	always @(A) begin
+		
+		case(A) 
+			
+			3'd0 : G = memory[0];
+			3'd1 : G = memory[1];
+			3'd2 : G = memory[2];
+			3'd3 : G = memory[3];
+			
+			3'd4 : G = memory[4];
+			3'd5 : G = memory[5];
+			3'd6 : G = memory[6];
+			3'd7 : G = memory[7];
+		
+		endcase
+	end
+		
+	
+	integer i;
+	
+	initial begin
+		
+		memory[0] = 8'h01;
+		memory[1] = 8'h03;
+		memory[2] = 8'h07;
+		memory[3] = 8'h0F;
+		
+		memory[4] = 8'h1F;
+		memory[5] = 8'h3F;
+		memory[6] = 8'h7F;
+		memory[7] = 8'hFF;
+		
+	end
+
+endmodule
+
+
+
+module TOP_MODULE(
+
+	output O,
+	input CLK,
+	input CLEAR,
+	input [2:0] S
+);
+	wire [2:0] Q;
+	
+	COUNTER_3BIT cnt(Q, CLEAR, CLK);
+	
+	wire [7:0] B;
+	
+	DECODER dec(B, 1'b1, Q);
+	
+	wire [7:0] G;
+	MEMORY mem(G, S);
+	
+	wire [7:0] E;
+	wire [7:0] GROUND = 8'b0;
+	MUX_ARRAY arr(E, B,GROUND, G);
+	
+	MUX_8x1 mux(O, E, Q);
+	
+	
+
+endmodule
+
+
+module TB_TOPMODULE();
+
+	initial begin
+		$dumpfile("file.vcd");
+		$dumpvars;
+	end
+	
+	
+	wire O;
+	reg CLK;
+	reg CLEAR;
+	reg [2:0] S;
+	
+	TOP_MODULE mod(O, CLK, CLEAR, S);
+	
+	always	
+		#0.5 CLK = ~CLK;
+	
+	initial begin
+			CLK = 1'b0;
+			S = 3'b0;
+			CLEAR = 1'b1;
+		#1	CLEAR = 1'b0;
+		#100 $finish;
+	end
+	
+	always
+		#8	S = S+1;
+	
+	initial
+		$monitor($time,"  , CLK = %b, S = %b, CLEAR = %b, O = %b", CLK, S, CLEAR, O);
 endmodule

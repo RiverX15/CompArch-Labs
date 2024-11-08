@@ -41,7 +41,7 @@ endmodule
 module ENCRYPT(input [7:0] number, input [7:0] key, input clock, input reset, output [7:0] enc_number);
     wire [7:0] num_reg, key_reg;
     REG_8BIT numR(num_reg, number, clock, reset);
-    REG_8BIT keyR(key_reg, number, clock, reset);
+    REG_8BIT keyR(key_reg, key, clock, reset);
     wire [7:0] expOut;
     EXPANSION_BOX exp(num_reg[3:0], expOut);
     wire [7:0] xorOut1;
@@ -61,14 +61,15 @@ module testbench;
     wire [7:0] enc_number;
     ENCRYPT enct(number, key, clock, reset, enc_number);
     initial clock=0;
-    always #2 clock=~clock;
+    always #1 clock=~clock;
     initial begin
-        $monitor("%0d\tnumber = %b\tkey = %b\tclock = %b\treset = %b\tenc_num = %b",
-                $time, number, key, clock, reset, enc_number);
-        #0 number=8'b0100_0110; key=8'b1001_0011; reset=0;
-        #5 number=8'b1100_1001; key=8'b1010_1100;
-        #5 number=8'b1010_0101; key=8'b0101_1010;
-        #5 number=8'b1111_0000; key=8'b1011_0001;
+        // $monitor("%0d\tnumber = %b\tkey = %b\tclock = %b\treset = %b\tenc_num = %b",
+        //         $time, number, key, clock, reset, enc_number);
+        $monitor("%0d\t number = %h\t key = %h\t enc_number = %h", $time, number, key, enc_number);
+        #1 number=8'b0100_0110; key=8'b1001_0011; reset=0;
+        #2 number=8'b1100_1001; key=8'b1010_1100;
+        #2 number=8'b1010_0101; key=8'b0101_1010;
+        #2 number=8'b1111_0000; key=8'b1011_0001;
         #100 $finish;
     end
 endmodule
